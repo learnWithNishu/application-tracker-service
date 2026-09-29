@@ -126,6 +126,11 @@
     <groupId>org.springframework.cloud</groupId>
     <artifactId>spring-cloud-starter-loadbalancer</artifactId>
 </dependency>
+        <!-- Actuator — exposes metrics endpoint -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
 
         <!-- Micrometer Prometheus registry — formats metrics for Prometheus -->
         <dependency>
