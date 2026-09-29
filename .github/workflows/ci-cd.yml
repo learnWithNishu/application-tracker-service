@@ -8,7 +8,6 @@ on:
 
 env:
   DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/tracker-service
-  JAVA_VERSION: '17'
 
 jobs:
 
@@ -69,20 +68,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      # 1. Java 17 runs the application tests
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ env.JAVA_VERSION }}
+          java-version: '17'
           distribution: 'temurin'
 
       - name: Cache Maven packages
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: \({{ runner.os }}-maven-\){{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      # 2. Run unit and integration tests with Java 17
       - name: Run tests
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
@@ -91,11 +92,18 @@ jobs:
           SPRING_DATASOURCE_PASSWORD: postgres
           SPRING_DATA_REDIS_HOST: localhost
           SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9092
-          # disable Ollama for CI
           SPRING_AI_OLLAMA_BASE_URL: http://localhost:11434
           APP_SIMILARITY_THRESHOLD: 75.0
         run: mvn clean test
 
+      # 3. CRITICAL STEP: Switch to JDK 21 for the Sonar scanner
+      - name: Set up JDK 21 for SonarCloud Scanner
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      # 4. SonarCloud analysis running on JDK 21
       - name: SonarCloud Analysis
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
