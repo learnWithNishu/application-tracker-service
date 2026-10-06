@@ -82,6 +82,12 @@ public class JobApplicationController {
         //String token = request.getHeader("Authorization").substring(7);
         return ResponseEntity.ok().body(jobApplicationService.getUpcomingInterviewsApplications());
     }
+
+    @GetMapping("/stats/{userId}")
+    public ResponseEntity<ApplicationStatsResponse> getApplicationStats(
+            @PathVariable Long userId) {
+        return ResponseEntity.ok(jobApplicationService.getApplicationStats(userId));
+    }
     }
 
 
