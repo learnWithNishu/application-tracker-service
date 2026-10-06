@@ -17,5 +17,6 @@ public interface JobApplicationService {
     List<StaleApplicationDto> getStaleApplications();
     List<UpcomingInterviewDto> getUpcomingInterviewsApplications();
 
+    ApplicationStatsResponse getApplicationStats(Long userId);
 
 }

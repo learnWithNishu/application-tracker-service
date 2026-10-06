@@ -31,7 +31,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+
 import org.springframework.ai.ollama.OllamaEmbeddingModel;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -303,4 +306,48 @@ public class JobApplicationServiceImpl implements JobApplicationService {
          }).toList();
     }
 
+    @Override
+    public ApplicationStatsResponse getApplicationStats(Long userId) {
+
+        Long total = jobApplicationRepository.countByUserId(userId);
+
+        Map<String, Long> byStatus = new LinkedHashMap<>();
+        for (ApplicationStatus status : ApplicationStatus.values()) {
+            Long count = jobApplicationRepository
+                    .countByUserIdAndStatus(userId, status);
+            byStatus.put(status.name(), count);
+        }
+
+        Double avgScore = jobApplicationRepository
+                .findAverageMatchScoreByUserId(userId);
+        Double highestScore = jobApplicationRepository
+                .findHighestMatchScoreByUserId(userId);
+
+        Long withScore = jobApplicationRepository
+                .countByUserIdAndMatchScoreIsNotNull(userId);
+
+        LocalDateTime startOfMonth = LocalDateTime.now()
+                .withDayOfMonth(1)
+                .withHour(0)
+                .withMinute(0)
+                .withSecond(0);
+        Long thisMonth = jobApplicationRepository
+                .countApplicationsThisMonth(userId, startOfMonth);
+
+        if (avgScore != null) {
+            avgScore = Math.round(avgScore * 10.0) / 10.0;
+        }
+        if (highestScore != null) {
+            highestScore = Math.round(highestScore * 10.0) / 10.0;
+        }
+
+        return new ApplicationStatsResponse(
+                total,
+                byStatus,
+                avgScore,
+                withScore,
+                highestScore,
+                thisMonth
+        );
+    }
 }

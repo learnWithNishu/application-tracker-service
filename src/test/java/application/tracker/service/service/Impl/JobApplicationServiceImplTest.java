@@ -140,21 +140,7 @@ public class JobApplicationServiceImplTest {
         assertNotNull(response);
         assertNull(response.getMatchScore());
     }
-//    @Test
-//    @DisplayName("Create application succeeds even when Match Service returns null")
-//    void createApplication_Succeeds_WhenMatchServiceReturnsNull() {
-//        testRequest.setResumeId(1L);
-//        when(jobApplicationRepository.save(any(JobApplication.class)))
-//                .thenReturn(testApplication);
-//        when(matchServiceClient.getMatchScore(anyString(), anyLong(), anyString()))
-//                .thenReturn(null);
-//
-//        JobApplicationResponse response = jobApplicationService.createApplication(
-//                testRequest, 5L, "Bearer token");
-//
-//        assertNotNull(response);
-//        assertNull(response.getMatchScore());
-//    }
+
 
     @Test
     @DisplayName("getAllApplications returns paginated results for user")
@@ -242,4 +228,68 @@ public class JobApplicationServiceImplTest {
         assertThrows(ApplicationNotFoundException.class,
                 () -> jobApplicationService.deleteApplication(999L, 5L));
     }
+
+    @Test
+    void getApplicationStats_ShouldCalculateAndReturnCorrectStats() {
+        // Arrange
+        Long userId = 1L;
+        LocalDateTime now = LocalDateTime.now();
+
+        when(jobApplicationRepository.countByUserId(userId)).thenReturn(10L);
+        when(jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.APPLIED)).thenReturn(5L);
+        when(jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.INTERVIEW_SCHEDULED)).thenReturn(2L);
+        when(jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.REJECTED)).thenReturn(2L);
+        when(jobApplicationRepository.countByUserIdAndStatus(userId, ApplicationStatus.OFFER_RECEIVED)).thenReturn(1L);
+
+        when(jobApplicationRepository.findAverageMatchScoreByUserId(userId)).thenReturn(78.456);
+        when(jobApplicationRepository.findHighestMatchScoreByUserId(userId)).thenReturn(92.34);
+        when(jobApplicationRepository.countByUserIdAndMatchScoreIsNotNull(userId)).thenReturn(8L);
+        when(jobApplicationRepository.countApplicationsThisMonth(eq(userId), any(LocalDateTime.class))).thenReturn(4L);
+
+        // Act
+        ApplicationStatsResponse response = jobApplicationService.getApplicationStats(userId);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(10L, response.getTotalApplications());
+        assertEquals(8L, response.getTotalWithMatchScore());
+        assertEquals(4L, response.getApplicationsThisMonth());
+
+        // Check rounding (1 decimal place)
+        assertEquals(78.5, response.getAverageMatchScore());
+        assertEquals(92.3, response.getHighestMatchScore());
+
+        // Check status map
+        assertNotNull(response.getApplicationsByStatus());
+        assertEquals(5L, response.getApplicationsByStatus().get("APPLIED"));
+        assertEquals(2L, response.getApplicationsByStatus().get("INTERVIEW_SCHEDULED"));
+        assertEquals(2L, response.getApplicationsByStatus().get("REJECTED"));
+        assertEquals(1L, response.getApplicationsByStatus().get("OFFER_RECEIVED"));
+
+        verify(jobApplicationRepository, times(1)).countByUserId(userId);
+        verify(jobApplicationRepository, times(1)).findAverageMatchScoreByUserId(userId);
+        verify(jobApplicationRepository, times(1)).findHighestMatchScoreByUserId(userId);
+    }
+
+    @Test
+    void getApplicationStats_WhenNoScores_ShouldHandleNullsGracefully() {
+        Long userId = 2L;
+
+        when(jobApplicationRepository.countByUserId(userId)).thenReturn(0L);
+        for (ApplicationStatus status : ApplicationStatus.values()) {
+            when(jobApplicationRepository.countByUserIdAndStatus(userId, status)).thenReturn(0L);
+        }
+        when(jobApplicationRepository.findAverageMatchScoreByUserId(userId)).thenReturn(null);
+        when(jobApplicationRepository.findHighestMatchScoreByUserId(userId)).thenReturn(null);
+        when(jobApplicationRepository.countByUserIdAndMatchScoreIsNotNull(userId)).thenReturn(0L);
+        when(jobApplicationRepository.countApplicationsThisMonth(eq(userId), any(LocalDateTime.class))).thenReturn(0L);
+
+        ApplicationStatsResponse response = jobApplicationService.getApplicationStats(userId);
+
+        assertNotNull(response);
+        assertEquals(0L, response.getTotalApplications());
+        assertNull(response.getAverageMatchScore());
+        assertNull(response.getHighestMatchScore());
+    }
+
 }
