@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: APPLICATION-TRACKER-SERVICE
+  datasource:
+    url: ${DATABASE_URL}
+    driver-class-name: org.postgresql.Driver
+  data:
+    redis:
+      url: ${REDIS_URL}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+  ai:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      embedding:
+        model: nomic-embed-text
+  kafka:
+    bootstrap-servers: ${KAFKA_URL:localhost:9092}
+
+server:
+  port: ${PORT:8082}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://eureka-server.railway.internal:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      matchService:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        minimum-number-of-calls: 5
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration: 86400000
+  similarity:
+    threshold: 75.0
