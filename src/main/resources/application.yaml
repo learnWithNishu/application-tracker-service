@@ -2,9 +2,9 @@ spring:
   application:
     name: APPLICATION-TRACKER-SERVICE
   datasource:
-    url: jdbc:postgresql://localhost:5433/applicationtracker
-    username: postgres
-    password: postgres
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/applicationtracker}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
@@ -15,15 +15,16 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     open-in-view: false
     properties:
       hibernate:
-        format-sql: true
+        format-sql: false
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
       timeout: 2000ms
       lettuce:
         pool:
@@ -32,22 +33,24 @@ spring:
           min-idle: 1
   ai:
     ollama:
-      base-url: http://localhost:11434
+      base-url: ${SPRING_AI_OLLAMA_BASE_URL:http://localhost:11434}
       chat:
-        model: llama3.2       
+        model: llama3.2
       embedding:
-        model: nomic-embed-text 
+        model: nomic-embed-text
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
 server:
   port: 8082
+
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
   instance:
     prefer-ip-address: true
 
@@ -56,7 +59,7 @@ app:
     secret: ${JWT_SECRET}
     expiration: 86400000
   services:
-    match-service-url: http://localhost:8083
+    match-service-url: ${MATCH_SERVICE_URL:http://localhost:8083}
   similarity:
     threshold: 75.0
   notifications:
@@ -71,7 +74,6 @@ resilience4j:
         wait-duration-in-open-state: 10s
         permitted-number-of-calls-in-half-open-state: 3
         minimum-number-of-calls: 5
-
         record-exceptions:
           - java.lang.Exception
         ignore-exceptions:
@@ -91,6 +93,7 @@ resilience4j:
         wait-duration: 500ms
         retry-exceptions:
           - org.springframework.web.client.ResourceAccessException
+
 management:
   endpoints:
     web:
@@ -100,9 +103,9 @@ management:
     health:
       show-details: always
       circuitbreakers:
-               enabled: true
+          enabled: true
     prometheus:
-      enabled: true
+          enabled: true
   metrics:
     export:
       prometheus:
@@ -114,6 +117,3 @@ management:
         http.server.requests: true
       percentiles:
         http.server.requests: 0.5, 0.95, 0.99
-    endpoint:
-      health:
-        show-details: always
